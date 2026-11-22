@@ -1,0 +1,6 @@
+# clasp の接続情報（スクリプトIDが入る）
+.clasp.json
+.clasprc.json
+# 自分の釣行データを誤って入れないように
+*.xlsx
+private/
