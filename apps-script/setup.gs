@@ -209,6 +209,10 @@ function buildSummary() {
   } else {
     sh = ss.insertSheet('計測集計');
   }
+  // 3つの断面を横に並べるので、新しいシートの26列では足りない
+  const needCols = 3 * SUM_BLOCK_W;
+  if (sh.getMaxColumns() < needCols) sh.insertColumnsAfter(sh.getMaxColumns(), needCols - sh.getMaxColumns());
+
   const tm = ss.getSheetByName('タックルマスタ');
   const firstRod  = tm.getRange('A2').getValue();
   const firstReel = tm.getRange('D2').getValue();
