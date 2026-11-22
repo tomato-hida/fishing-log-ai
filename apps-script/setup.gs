@@ -25,7 +25,7 @@ const WEATHER_COL = 16;   // 釣行・計測とも P列から気象8列
 const M = { rod: 'D', reel: 'E', dist: 'H', hard: 'J', dia: 'L', band: 'N', shape: 'O' };
 
 // ===== 初期値 =====
-const DEFAULT_BANDS = [[0, 5], [7.5, 10], [12.5, 15], [17.5, 20], [25, 30], [35, 40]];
+const DEFAULT_BANDS = [5, 10, 15, 20, 30, 40];   // 重量帯。下限は隣との中間を自動で出す
 const DEFAULT_DIA   = [[0, '〜30mm'], [31, '31-32mm'], [33, '33-34mm'], [35, '35-36mm'], [37, '37-38mm'], [39, '39mm〜']];
 const DEFAULT_HARD  = ['UL', 'L', 'ML', 'M', 'MH', 'H', 'XH'];
 const DEFAULT_SHAPE = ['ミノー', 'シンペン', 'バイブ', 'メタルジグ', 'ジグヘッド', 'ワーム', 'クランク', 'トップ', 'エギ', 'オモリ'];
@@ -107,14 +107,14 @@ function buildTackle_(ss) {
   const { sh, created } = ensureSheet_(ss, 'タックルマスタ');
   const heads = {
     1: 'ロッド', 2: '硬さ', 4: 'リール', 5: 'スプール径mm', 7: 'ルアー', 8: '重量g', 9: '形状',
-    11: '重量帯の下限', 12: '重量帯', 14: '径帯の下限', 15: '径帯', 17: '硬さの並び', 19: '形状の並び',
+    11: '重量帯の下限（自動）', 12: '重量帯', 14: '径帯の下限', 15: '径帯', 17: '硬さの並び', 19: '形状の並び',
   };
   Object.keys(heads).forEach(c => sh.getRange(1, Number(c)).setValue(heads[c]));
   if (created) {
     put_(sh, 2, 1, SAMPLE_RODS);
     put_(sh, 2, 4, SAMPLE_REELS);
     put_(sh, 2, 7, SAMPLE_LURES);
-    put_(sh, 2, 11, DEFAULT_BANDS);
+    put_(sh, 2, 12, DEFAULT_BANDS.map(v => [v]));
     put_(sh, 2, 14, DEFAULT_DIA);
     put_(sh, 2, 17, DEFAULT_HARD.map(v => [v]));
     put_(sh, 2, 19, DEFAULT_SHAPE.map(v => [v]));
@@ -128,7 +128,14 @@ function buildTackle_(ss) {
   setListFromRange_(sh.getRange('I2:I300'), sh.getRange('S2:S30'));
   sh.getRange('U1').setValue('ロッドやリールを買い替えたら行を書き換える。集計は硬さ・径帯・形状で組んであるので、製品が替わっても表の形は変わらない。')
     .setFontSize(9).setFontStyle('italic');
-  sh.getRange('U2').setValue('重量帯・径帯の「下限」は、実際の値をどの列・行に入れるかの境目。18gは20gの列、34mmは33-34mmの行に入る。')
+  // 重量帯の下限は自動：最初の帯は0、あとは1つ前の帯との中間（10と15なら12.5）。
+  // 帯はL列に重さを並べるだけでよい
+  const lower = [];
+  for (let r = 2; r <= 60; r++) {
+    lower.push([r === 2 ? '=IF(L2="","",0)' : `=IF(L${r}="","",(L${r - 1}+L${r})/2)`]);
+  }
+  sh.getRange('K2:K60').setFormulas(lower).setBackground(C_AUTO);
+  sh.getRange('U2').setValue('重量帯はL列に重さを小さい順に並べるだけ。境目（K列）は隣の帯との中間を自動で出す。18gは20gの列に入る。帯を変えたら「計測集計を作り直す」。')
     .setFontSize(9).setFontStyle('italic');
 }
 
