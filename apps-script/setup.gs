@@ -195,21 +195,26 @@ function buildDepth_(ss) {
 // ---------------------------------------------------------------
 // 計測集計（断面A・B・C）
 
-const SUM_WEIGHT_COLS = 8;    // 重量帯の列を最大いくつ並べるか
+// 重量帯の列数は、タックルマスタに書いてある帯の数で決まる（buildSummary の中で数える）。
+// 帯を増やしたら「釣りログ → 計測集計を作り直す」で列が増える。
 const SUM_ROWS = 12;          // 硬さ・径帯・形状を最大いくつ並べるか
-const SUM_BLOCK_W = 1 + SUM_WEIGHT_COLS + 1;   // ラベル列＋重量列＋すき間
 
 function buildSummary() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName('計測集計');
   if (sh) {
+    sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();   // 列数が変わると結合位置がずれるため
     sh.clear();
     sh.clearConditionalFormatRules();
     sh.getDataRange().clearDataValidations();
   } else {
     sh = ss.insertSheet('計測集計');
   }
-  // 3つの断面を横に並べるので、新しいシートの26列では足りない
+  const tm0 = ss.getSheetByName('タックルマスタ');
+  const SUM_WEIGHT_COLS = Math.max(1, tm0.getRange('L2:L100').getValues().filter(r => r[0] !== '').length);
+  const SUM_BLOCK_W = 1 + SUM_WEIGHT_COLS + 1;   // ラベル列＋重量列＋すき間
+
+  // 3つの断面を横に並べるので、新しいシートの26列では足りないことがある
   const needCols = 3 * SUM_BLOCK_W;
   if (sh.getMaxColumns() < needCols) sh.insertColumnsAfter(sh.getMaxColumns(), needCols - sh.getMaxColumns());
 
