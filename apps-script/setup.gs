@@ -209,6 +209,7 @@ const SUM_ROWS = 12;          // 硬さ・径帯・形状を最大いくつ並�
 function buildSummary() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName('計測集計');
+  const kept = sh ? readSelections_(sh) : {};   // 作り直す前の「対象ロッド／リール」を覚えておく
   if (sh) {
     sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();   // 列数が変わると結合位置がずれるため
     sh.clear();
@@ -256,7 +257,8 @@ function buildSummary() {
       const r = 3 + i;
       sh.getRange(r, c0).setValue(s[0]);
       const cell = sh.getRange(r, c0 + 1, 1, 3).merge();
-      cell.setValue(s[2]).setBackground(C_PICK).setFontWeight('bold').setHorizontalAlignment('center');
+      const keep = kept[b.title + '|' + s[0]];
+      cell.setValue(keep !== undefined && keep !== '' ? keep : s[2]).setBackground(C_PICK).setFontWeight('bold').setHorizontalAlignment('center');
       setListFromRange_(sh.getRange(r, c0 + 1), tm.getRange(s[3]));
       return { measCol: s[1], ref: '$' + col_(c0 + 1) + '$' + r };
     });
@@ -308,6 +310,23 @@ function buildSummary() {
     'ばらつきが平均の1割以内なら、その平均は信用していい。投数が5未満のマスはあてにならない。',
     '行は製品名ではなく硬さ・径帯・形状。道具を買い替えても表の形は変わらない。',
   ].forEach((t, i) => sh.getRange(notesTop + i, 1).setValue(t).setFontSize(9).setFontStyle('italic'));
+}
+
+/** 計測集計の1行目の見出しと、その下の「対象〇〇」の選択値を拾う */
+function readSelections_(sh) {
+  const out = {};
+  const w = sh.getLastColumn();
+  if (w < 1) return out;
+  const vals = sh.getRange(1, 1, 5, w).getValues();
+  for (let c = 0; c < w; c++) {
+    const title = String(vals[0][c] || '');
+    if (title.indexOf('断面') !== 0) continue;
+    for (let r = 2; r <= 4; r++) {
+      const label = String(vals[r][c] || '');
+      if (label.indexOf('対象') === 0) out[title + '|' + label] = vals[r][c + 1];
+    }
+  }
+  return out;
 }
 
 /** 集計の1マス分の数式 */
